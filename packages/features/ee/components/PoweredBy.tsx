@@ -19,15 +19,15 @@ const PoweredByCal = ({ logoOnly }: { logoOnly?: boolean }) => {
           <>
             <img
               className="relative -mt-px inline h-[10px] w-auto"
-              src="/techie-talent-logo.svg"
-              alt="Techie Talent"
+              src="/cresteo-logo.svg"
+              alt="Cresteo"
             />
           </>
         ) : (
           <img
             className="relative -mt-px inline h-[10px] w-auto"
-            src="/techie-talent-logo.svg"
-            alt="Techie Talent"
+            src="/cresteo-logo.svg"
+            alt="Cresteo"
           />
         )}
       </Link>
