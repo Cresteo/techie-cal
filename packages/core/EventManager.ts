@@ -137,7 +137,15 @@ export default class EventManager {
     // @NOTE: destinationCalendar it's an array now so as a fallback we will only check the first one
     const [mainHostDestinationCalendar] =
       (evt.destinationCalendar as [undefined | NonNullable<typeof evt.destinationCalendar>[number]]) ?? [];
-    if (evt.location === MeetLocationType && mainHostDestinationCalendar?.integration !== "google_calendar") {
+    // Without a destination calendar the event goes to the first connected calendar, so Meet still works
+    // when that one is a Google Calendar
+    const [firstConnectedCalendar] = this.calendarCredentials.filter(
+      (cred) => !cred.type.endsWith("other_calendar")
+    );
+    const eventGoesToGoogleCalendar = mainHostDestinationCalendar
+      ? mainHostDestinationCalendar.integration === "google_calendar"
+      : firstConnectedCalendar?.type === "google_calendar";
+    if (evt.location === MeetLocationType && !eventGoesToGoogleCalendar) {
       log.warn("Falling back to Cal Video integration as Google Calendar not installed");
       evt["location"] = "integrations:daily";
     }

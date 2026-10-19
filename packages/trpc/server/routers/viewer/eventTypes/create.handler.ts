@@ -1,8 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
-import getAppKeysFromSlug from "@calcom/app-store/_utils/getAppKeysFromSlug";
-import { DailyLocationType } from "@calcom/app-store/locations";
+import { MeetLocationType } from "@calcom/app-store/locations";
 import getApps from "@calcom/app-store/utils";
 import { getUsersCredentials } from "@calcom/lib/server/getUsersCredentials";
 import type { PrismaClient } from "@calcom/prisma";
@@ -30,16 +29,11 @@ export const createHandler = async ({ ctx, input }: CreateOptions) => {
   // Get Users default conferencing app
 
   const defaultConferencingData = userMetadataSchema.parse(ctx.user.metadata)?.defaultConferencingApp;
-  const appKeys = await getAppKeysFromSlug("daily-video");
-
   let locations: { type: string; link?: string }[] = [];
 
-  // If no locations are passed in and the user has a daily api key then default to daily
-  if (
-    (typeof rest?.locations === "undefined" || rest.locations?.length === 0) &&
-    typeof appKeys.api_key === "string"
-  ) {
-    locations = [{ type: DailyLocationType }];
+  // If no locations are passed in, default to Google Meet
+  if (typeof rest?.locations === "undefined" || rest.locations?.length === 0) {
+    locations = [{ type: MeetLocationType }];
   }
 
   if (defaultConferencingData && defaultConferencingData.appSlug !== "daily-video") {
@@ -47,7 +41,7 @@ export const createHandler = async ({ ctx, input }: CreateOptions) => {
     const foundApp = getApps(credentials, true).filter(
       (app) => app.slug === defaultConferencingData.appSlug
     )[0]; // There is only one possible install here so index [0] is the one we are looking for ;
-    const locationType = foundApp?.locationOption?.value ?? DailyLocationType; // Default to Daily if no location type is found
+    const locationType = foundApp?.locationOption?.value ?? MeetLocationType; // Default to Google Meet if no location type is found
     locations = [{ type: locationType, link: defaultConferencingData.appLink }];
   }
 
