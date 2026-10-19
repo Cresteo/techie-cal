@@ -6,6 +6,7 @@ import { getSafeRedirectUrl } from "@calcom/lib/getSafeRedirectUrl";
 import { HttpError } from "@calcom/lib/http-error";
 import { defaultHandler, defaultResponder } from "@calcom/lib/server";
 import prisma from "@calcom/prisma";
+import { userMetadata } from "@calcom/prisma/zod-utils";
 
 import getAppKeysFromSlug from "../../_utils/getAppKeysFromSlug";
 import getInstalledAppPath from "../../_utils/getInstalledAppPath";
@@ -79,29 +80,44 @@ async function getHandler(req: NextApiRequest, res: NextApiResponse) {
     }
   }
 
-  if (state?.installGoogleVideo) {
-    const existingGoogleMeetCredential = await prisma.credential.findFirst({
-      where: {
-        userId: req.session.user.id,
+  // Google Meet is the default conferencing app: install it with the calendar and use it
+  // unless the user already chose another default
+  const existingGoogleMeetCredential = await prisma.credential.findFirst({
+    where: {
+      userId: req.session.user.id,
+      type: "google_video",
+    },
+  });
+
+  if (!existingGoogleMeetCredential) {
+    await prisma.credential.create({
+      data: {
         type: "google_video",
+        key: {},
+        userId: req.session.user.id,
+        appId: "google-meet",
       },
     });
+  }
 
-    if (!existingGoogleMeetCredential) {
-      await prisma.credential.create({
-        data: {
-          type: "google_video",
-          key: {},
-          userId: req.session.user.id,
-          appId: "google-meet",
-        },
-      });
+  const user = await prisma.user.findUnique({
+    where: { id: req.session.user.id },
+    select: { metadata: true },
+  });
+  const metadata = userMetadata.parse(user?.metadata);
+  if (!metadata?.defaultConferencingApp?.appSlug) {
+    await prisma.user.update({
+      where: { id: req.session.user.id },
+      data: { metadata: { ...metadata, defaultConferencingApp: { appSlug: "google-meet" } } },
+    });
+  }
 
-      res.redirect(
-        getSafeRedirectUrl(`${CAL_URL}/apps/installed/conferencing?hl=google-meet`) ??
-          getInstalledAppPath({ variant: "conferencing", slug: "google-meet" })
-      );
-    }
+  if (state?.installGoogleVideo && !existingGoogleMeetCredential) {
+    res.redirect(
+      getSafeRedirectUrl(`${CAL_URL}/apps/installed/conferencing?hl=google-meet`) ??
+        getInstalledAppPath({ variant: "conferencing", slug: "google-meet" })
+    );
+    return;
   }
   res.redirect(
     getSafeRedirectUrl(state?.returnTo) ??
