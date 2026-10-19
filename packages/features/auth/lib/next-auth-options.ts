@@ -31,6 +31,13 @@ const { client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET } =
   JSON.parse(GOOGLE_API_CREDENTIALS)?.web || {};
 const GOOGLE_LOGIN_ENABLED = process.env.GOOGLE_LOGIN_ENABLED === "true";
 const IS_GOOGLE_LOGIN_ENABLED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_LOGIN_ENABLED);
+// Only these Google Workspace domains can log in. Calendar connections are not affected.
+const GOOGLE_LOGIN_ALLOWED_DOMAINS = (
+  process.env.GOOGLE_LOGIN_ALLOWED_DOMAINS || "techietalent.net,cresteo.com"
+)
+  .split(",")
+  .map((domain) => domain.trim().toLowerCase())
+  .filter(Boolean);
 const ORGANIZATIONS_AUTOLINK =
   process.env.ORGANIZATIONS_AUTOLINK === "1" || process.env.ORGANIZATIONS_AUTOLINK === "true";
 
@@ -261,7 +268,7 @@ if (IS_GOOGLE_LOGIN_ENABLED) {
       clientId: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
-      authorization: { params: { hd: "techietalent.net" } },
+      authorization: { params: { hd: GOOGLE_LOGIN_ALLOWED_DOMAINS[0] } },
     })
   );
 }
@@ -592,6 +599,18 @@ export const AUTH_OPTIONS: AuthOptions = {
 
       if (!user.email) {
         return false;
+      }
+
+      // `hd` is only a hint for Google's account picker, so enforce the domain server-side
+      if (account?.provider === "google") {
+        const emailDomain = user.email.split("@")[1]?.toLowerCase();
+        const hostedDomain = (profile as { hd?: string } | undefined)?.hd?.toLowerCase();
+        const isAllowed = [emailDomain, hostedDomain].some(
+          (domain) => !!domain && GOOGLE_LOGIN_ALLOWED_DOMAINS.includes(domain)
+        );
+        if (!isAllowed) {
+          return false;
+        }
       }
 
       if (!user.name) {
