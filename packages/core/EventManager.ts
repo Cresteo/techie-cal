@@ -6,7 +6,6 @@ import type { z } from "zod";
 
 import { getCalendar } from "@calcom/app-store/_utils/getCalendar";
 import { FAKE_DAILY_CREDENTIAL } from "@calcom/app-store/dailyvideo/lib/VideoApiAdapter";
-import { appKeysSchema as calVideoKeysSchema } from "@calcom/app-store/dailyvideo/zod";
 import { getEventLocationTypeFromApp, MeetLocationType } from "@calcom/app-store/locations";
 import getApps from "@calcom/app-store/utils";
 import logger from "@calcom/lib/logger";
@@ -115,22 +114,9 @@ export default class EventManager {
    */
   public async create(event: CalendarEvent): Promise<CreateUpdateResult> {
     const evt = processLocation(event);
-    // Fallback to cal video if no location is set
+    // Fallback to Google Meet if no location is set
     if (!evt.location) {
-      // See if cal video is enabled & has keys
-      const calVideo = await prisma.app.findFirst({
-        where: {
-          slug: "daily-video",
-        },
-        select: {
-          keys: true,
-          enabled: true,
-        },
-      });
-
-      const calVideoKeys = calVideoKeysSchema.safeParse(calVideo?.keys);
-
-      if (calVideo?.enabled && calVideoKeys.success) evt["location"] = "integrations:daily";
+      evt["location"] = MeetLocationType;
     }
 
     // Fallback to Cal Video if Google Meet is selected w/o a Google Cal
