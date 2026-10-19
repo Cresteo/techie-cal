@@ -21,7 +21,11 @@ function HomePage() {
       </Head>
       <div className="mx-auto max-w-3xl px-6 py-16">
         <img src={LOGO} alt="Cresteo" className="h-8 w-auto" />
-        <h1 className="text-emphasis mt-12 text-4xl font-semibold">Cresteo Cal</h1>
+        <div className="mt-12 flex items-center gap-4">
+          {/* Same image as the Google OAuth consent screen logo */}
+          <img src="/cresteo-cal-icon.png" alt="Cresteo Cal logo" className="h-16 w-16 rounded-xl" />
+          <h1 className="text-emphasis text-4xl font-semibold">Cresteo Cal</h1>
+        </div>
         <p className="mt-4 text-lg">
           Cresteo Cal is the scheduling tool of Cresteo. It lets clients, candidates and partners book
           meetings with the Cresteo team at times that actually work, without back-and-forth emails.
